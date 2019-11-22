@@ -94,8 +94,11 @@ int main() {
 	string myQuery = "create table if not exists ";
 	myQuery += carTable;
 	myQuery += " (carVIN char(17) NOT NULL, carMiles int NOT NULL, dealerName char(100) NOT NULL, carPrice int NOT NULL, ";
-	myQuery += "PRIMARY KEY(carVIN)); ";
+	myQuery += "PRIMARY KEY(carVIN), ";
 	myQuery += "FOREIGN KEY(dealerName) REFERENCES ";
+	myQuery += dealerTable;
+	myQuery += " (dealerName) ";
+	myQuery += ");";
 	status = mysql_query(conn, myQuery.c_str());
 
 	// If the query didn't work
@@ -120,12 +123,8 @@ int main() {
 	//--------CREATE DEALER TABLE----------------------------
 	myQuery = "create table if not exists ";
 	myQuery += dealerTable;
-	myQuery += " (dealerName char(100) NOT NULL, zipCode int NOT NULL, dealerNum char(10) NOT NULL, ";
-	myQuery += "PRIMARY KEY(dealerName, ";
-	myQuery += "FOREIGN KEY(dealerName) REFERENCES ";
-	myQuery += carTable;
-	myQuery += " (dealerName) ";
-	myQuery += ");";
+	myQuery += " (dealerName char(100) NOT NULL, zipCode int, dealerNum char(10) NOT NULL, ";
+	myQuery += "PRIMARY KEY(dealerName)); ";
 	status = mysql_query(conn, myQuery.c_str());
 
 	// If the query didn't work
@@ -143,7 +142,6 @@ int main() {
 	//While it's still running
 	while (!flag) {
 		//Variables
-		string ws; //just white space
 		string carVIN;
 		int carMiles;
 		string dealerName;
@@ -160,17 +158,17 @@ int main() {
 		switch (cmd) {
 		case 'a':
 			cin >> cmd2; //reads in second command
-			cin >> ws; //skips space
+			cin.get(); //skips space
 
 			switch (cmd2) {
 				//add a car
 			case 'c':
 				cin >> carVIN;
-				cin >> ws;
+				cin.get();
 				cin >> carMiles;
-				cin >> ws;
+				cin.get();
 				cin >> dealerName;
-				cin >> ws;
+				cin.get();
 				cin >> carPrice;
 
 				status = addCar(carVIN, carMiles, dealerName, carPrice, conn, mysql);
@@ -185,7 +183,7 @@ int main() {
 				//add a manufacturer
 			case 'm':
 				cin >> manCode;
-				cin >> ws;
+				cin.get();
 				cin >> manName;
 
 				status = addMan(manCode, manName, conn, mysql);
@@ -196,11 +194,11 @@ int main() {
 				break;
 
 				//add a dealer
-			case 'd':
+			case 'd':				
 				cin >> dealerName;
-				cin >> ws;
+				cin.get();
 				cin >> zipCode;
-				cin >> ws;
+				cin.get();
 				cin >> dealerNum;
 
 				status = addDealer(dealerName, zipCode, dealerNum, conn, mysql);
@@ -221,17 +219,17 @@ int main() {
 			}
 			break;
 
-		case 'f':
-		case 'd':
-		case 's':
-		case 'q':
+		//case 'f':
+		//case 'd':
+		//case 's':
+		//case 'q':
 
 		}
 
 
 
 	}
-
+	return 0;
 }
 
 int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL* conn, MYSQL mysql) {
@@ -270,21 +268,69 @@ int addMan(string manCode, string manName, MYSQL* conn, MYSQL mysql) {
 
 int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL* conn, MYSQL mysql) {
 	int status;
-
+	cout << dealerName << "/" << zipCode << "/" << dealerNum;
 	string myQuery = "insert into ";
 	myQuery += dealerTable;
 	myQuery += " VALUES('";
 	myQuery += dealerName;
-	myQuery += "',  '";
-	myQuery += zipCode;
-	myQuery += "',  '";
+	myQuery += "', '";
+	string zip = to_string(zipCode); 
+	myQuery += zip;
+	myQuery += "', '";
 	myQuery += dealerNum;
 	myQuery += "');";
-
+	
 	status = mysql_query(conn, myQuery.c_str());
 	return status;
 }
 
 int list(char cmd2, MYSQL* conn, MYSQL mysql) {
+	int status;
 
+	string myQuery;
+
+	MYSQL_RES* result;
+	MYSQL_ROW row;
+
+	switch (cmd2) {
+		//list cars
+	case 'c':
+		myQuery = "select * from " + carTable + " ;";
+		break;
+
+		//list dealers
+	case 'd':
+		myQuery = "select * from " + dealerTable + " ;";
+		break;
+
+	default:
+		cout << "Table not exists" << endl;
+		break;
+	}
+	status = mysql_query(conn, myQuery.c_str());
+
+	if (status != 0) {
+		//Explain why
+		cout << mysql_error(&mysql) << endl;
+	}
+
+	result = mysql_store_result(conn);
+
+	//Print out the info received
+	switch (cmd2) {
+	case'c':
+		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+			cout << setw(20) << row[0] << setw(0) << row[1] << endl;
+		}
+		break;
+	case 'd':
+		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+			cout << row[0] << setw(10) << row[1] << setw(20) << row[2] << endl;
+
+		}
+
+	}
+
+	mysql_free_result(result);
+	return status;
 }
