@@ -17,6 +17,7 @@ int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL*,
 int addMan(string manCode, string manName, MYSQL*, MYSQL);
 int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL*, MYSQL);
 int list(char cmd2, MYSQL*, MYSQL);
+int find(char cmd2, MYSQL*, MYSQL);
 
 
 
@@ -209,6 +210,7 @@ int main() {
 				}
 				break;
 			}
+			break;
 		case 'l':
 			cin >> cmd2; //reads in second command
 			status = list(cmd2, conn, mysql);
@@ -219,10 +221,27 @@ int main() {
 			}
 			break;
 
-		//case 'f':
+		case 'f':
+			cin >> cmd2; //reads in second command
+			status = find(cmd2, conn, mysql);
+
+			if (status != 0) {
+				//Explain why
+				cout << mysql_error(&mysql) << endl;
+			}
+			break;
+
 		//case 'd':
 		//case 's':
-		//case 'q':
+		case 'q':
+			flag = true;
+			cout << "[Goodbye.]";
+			break;
+			// if there is an error
+		default:
+			cout << "Wrong command";
+			cout << endl;
+			break;
 
 		}
 
@@ -248,7 +267,6 @@ int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL* 
 	string price = to_string(carPrice);
 	myQuery += price;
 	myQuery += "');";
-	cout << myQuery;
 
 	status = mysql_query(conn, myQuery.c_str());
 	return status;
@@ -271,7 +289,6 @@ int addMan(string manCode, string manName, MYSQL* conn, MYSQL mysql) {
 
 int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL* conn, MYSQL mysql) {
 	int status;
-	cout << dealerName << "/" << zipCode << "/" << dealerNum;
 	string myQuery = "insert into ";
 	myQuery += dealerTable;
 	myQuery += " VALUES('";
@@ -298,18 +315,21 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 	switch (cmd2) {
 		//list cars
 	case 'c':
-		myQuery = "select * from " + carTable + " ;";
+		myQuery = "select * from " + carTable;
+		myQuery += " order by carVIN;";
 		break;
 
 		//list dealers
 	case 'd':
-		myQuery = "select * from " + dealerTable + " ;";
+		myQuery = "select * from " + dealerTable;
+		myQuery += " order by zipCode, dealerName;";
 		break;
 
 	default:
 		cout << "Table not exists" << endl;
 		break;
 	}
+
 	status = mysql_query(conn, myQuery.c_str());
 
 	if (status != 0) {
@@ -323,16 +343,62 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 	switch (cmd2) {
 	case'c':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			cout << row[0] << setw(10) << row[1] << setw(15) << row[2] << setw(20) << row[3] << endl;
+			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << left << row[2] << setw(20) << row[3] << endl;
 		}
 		break;
 	case 'd':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			cout << row[0] << setw(10) << row[1] << setw(15) << row[2] << endl;
+			string temp = row[2];
+			string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
+			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << num << endl;
 		}
 
 	}
 
+	mysql_free_result(result);
+	return status;
+}
+
+int find(char cmd2, MYSQL* conn, MYSQL mysql) {
+	int status;
+	string what;
+	cin >> what;
+
+	string myQuery;
+
+	MYSQL_RES* result;
+	MYSQL_ROW row;
+
+	switch (cmd2) {
+	case 'm':
+		myQuery = "select car_t.carMiles, car_t.carPrice, car_t.dealerName,";
+		myQuery += " dealer_t.dealerNum FROM car_t, dealer_t ";
+		myQuery += "where LEFT(carVIN, 3) = (SELECT manCode FROM man_t WHERE manName =\"";
+		myQuery += what;
+		myQuery += "\") AND car_t.dealerName = dealer_t.dealerName;";
+		break;
+		//case 'z':
+	}
+
+	status = mysql_query(conn, myQuery.c_str());
+
+	if (status != 0) {
+		//Explain why
+		cout << mysql_error(&mysql) << endl;
+	}
+
+	result = mysql_store_result(conn);
+
+	//Print out the info received
+	switch (cmd2) {
+	case'm':
+		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << left << row[2] << setw(20) << row[3] << endl;
+		}
+		break;
+		//case 'z':
+
+	}
 	mysql_free_result(result);
 	return status;
 }
