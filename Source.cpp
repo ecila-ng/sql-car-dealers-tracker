@@ -324,6 +324,9 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 		myQuery = "select * from " + dealerTable;
 		myQuery += " order by zipCode, dealerName;";
 		break;
+	case 'm':
+		myQuery = "select * from " + manTable + ";" ;
+		break;
 
 	default:
 		cout << "Table not exists" << endl;
@@ -352,7 +355,13 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 			string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
 			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << num << endl;
 		}
+		break;
 
+	case 'm':
+		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << endl;
+		}
+		break;
 	}
 
 	mysql_free_result(result);
@@ -371,13 +380,19 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 
 	switch (cmd2) {
 	case 'm':
-		myQuery = "select car_t.carMiles, car_t.carPrice, car_t.dealerName,";
+		myQuery = "SELECT car_t.carMiles, car_t.carPrice, car_t.dealerName,";
 		myQuery += " dealer_t.dealerNum FROM car_t, dealer_t ";
 		myQuery += "where LEFT(carVIN, 3) = (SELECT manCode FROM man_t WHERE manName =\"";
 		myQuery += what;
-		myQuery += "\") AND car_t.dealerName = dealer_t.dealerName;";
+		myQuery += "\") AND car_t.dealerName = dealer_t.dealerName";
+		myQuery += " order by carPrice DESC, carMiles ASC, dealer_t.dealerName;";
+
+		//cout << myQuery;
 		break;
-		//case 'z':
+	default:
+		cout << "Table not exists" << endl;
+
+	//case 'z':
 	}
 
 	status = mysql_query(conn, myQuery.c_str());
@@ -389,16 +404,24 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 
 	result = mysql_store_result(conn);
 
+
 	//Print out the info received
 	switch (cmd2) {
 	case'm':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << left << row[2] << setw(20) << row[3] << endl;
+			string temp = row[3];
+			string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
+
+			cout << what << ": ";
+			cout << row[0] << " miles, ";
+			cout << "$" << row[1];
+			cout << ": " << row[2] << "[";
+			cout << num << "]" << endl;
 		}
 		break;
 		//case 'z':
-
 	}
 	mysql_free_result(result);
 	return status;
 }
+
