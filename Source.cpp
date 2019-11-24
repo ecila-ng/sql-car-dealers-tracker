@@ -240,12 +240,15 @@ int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL* 
 	myQuery += " VALUES('";
 	myQuery += carVIN;
 	myQuery += "',  '";
-	myQuery += carMiles;
+	string miles = to_string(carMiles);
+	myQuery += miles;
 	myQuery += "',  '";
 	myQuery += dealerName;
 	myQuery += "',  '";
-	myQuery += carPrice;
+	string price = to_string(carPrice);
+	myQuery += price;
 	myQuery += "');";
+	cout << myQuery;
 
 	status = mysql_query(conn, myQuery.c_str());
 	return status;
@@ -320,13 +323,12 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 	switch (cmd2) {
 	case'c':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			cout << setw(20) << row[0] << setw(0) << row[1] << endl;
+			cout << row[0] << setw(10) << row[1] << setw(15) << row[2] << setw(20) << row[3] << endl;
 		}
 		break;
 	case 'd':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			cout << row[0] << setw(10) << row[1] << setw(20) << row[2] << endl;
-
+			cout << row[0] << setw(10) << row[1] << setw(15) << row[2] << endl;
 		}
 
 	}
