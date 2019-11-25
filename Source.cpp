@@ -18,6 +18,7 @@ int addMan(string manCode, string manName, MYSQL*, MYSQL);
 int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL*, MYSQL);
 int list(char cmd2, MYSQL*, MYSQL);
 int find(char cmd2, MYSQL*, MYSQL);
+int deleteWhat(char cmd2, MYSQL*, MYSQL);
 
 
 
@@ -231,7 +232,16 @@ int main() {
 			}
 			break;
 
-		//case 'd':
+		case 'd':
+			cin >> cmd2; //reads in second command
+			status = deleteWhat(cmd2, conn, mysql);
+
+			if (status != 0) {
+				//Explain why
+				cout << mysql_error(&mysql) << endl;
+			}
+			break;
+
 		//case 's':
 		case 'q':
 			flag = true;
@@ -382,17 +392,24 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 	case 'm':
 		myQuery = "SELECT car_t.carMiles, car_t.carPrice, car_t.dealerName,";
 		myQuery += " dealer_t.dealerNum FROM car_t, dealer_t ";
-		myQuery += "where LEFT(carVIN, 3) = (SELECT manCode FROM man_t WHERE manName =\"";
+		myQuery += "WHERE LEFT(carVIN, 3) = (SELECT manCode FROM man_t WHERE manName =\"";
 		myQuery += what;
 		myQuery += "\") AND car_t.dealerName = dealer_t.dealerName";
-		myQuery += " order by carPrice DESC, carMiles ASC, dealer_t.dealerName;";
-
-		//cout << myQuery;
+		myQuery += " ORDER BY carPrice DESC, carMiles ASC, dealer_t.dealerName;";
+		break;
+	case 'z':
+		myQuery = "SELECT man_t.manName, car_t.carMiles, car_t.carPrice, car_t.dealerName, ";
+		myQuery += "dealer_t.dealerNum FROM dealer_t, car_t, man_t ";
+		myQuery += "WHERE dealer_t.dealerName = car_t.dealerName ";
+		myQuery += "AND man_t.manName = (SELECT man_t.manName FROM man_t WHERE LEFT(car_t.carVIN,3) = man_t.manCode) ";
+		myQuery += "AND dealer_t.dealerName = (SELECT dealerName FROM dealer_t WHERE zipCode =";
+		myQuery += what;
+		myQuery += ") ";
+		myQuery += "ORDER BY man_t.manName ASC, car_t.carPrice DESC, dealer_t.dealerName;";
 		break;
 	default:
 		cout << "Table not exists" << endl;
-
-	//case 'z':
+		break;
 	}
 
 	status = mysql_query(conn, myQuery.c_str());
@@ -419,9 +436,46 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 			cout << num << "]" << endl;
 		}
 		break;
-		//case 'z':
+	case 'z':
+		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+			string temp = row[4];
+			string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
+
+			cout << row[0] << ": ";
+			cout << row[1] << " miles, ";
+			cout << "$" << row[2];
+			cout << ": " << row[3];
+			cout << "[" << num << "]" << endl;
+		}
+		break;
 	}
 	mysql_free_result(result);
 	return status;
 }
 
+int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
+	int status;
+	string what;
+	cin >> what;
+
+	string myQuery;
+
+	MYSQL_RES* result;
+	MYSQL_ROW row;
+
+	switch (cmd2) {
+	case'c':
+		myQuery = "DELETE FROM car_t";
+
+	case 'd':
+
+	}
+	status = mysql_query(conn, myQuery.c_str());
+
+	if (status != 0) {
+		//Explain why
+		cout << mysql_error(&mysql) << endl;
+	}
+
+	result = mysql_store_result(conn);
+}
