@@ -91,12 +91,14 @@ int main() {
 		cout << "DB connection established" << endl;
 
 	int status;
+	cout << "----- CAR DEALERS MANAGER-----" << endl;
 
 	//-------CREATE CAR TABLE------------------------
 	string myQuery = "create table if not exists ";
 	myQuery += carTable;
 	myQuery += " (carVIN char(17) NOT NULL, carMiles int NOT NULL, dealerName char(100) NOT NULL, carPrice int NOT NULL, ";
 	myQuery += "PRIMARY KEY(carVIN), ";
+	myQuery += "CONSTRAINT FK_dealerName ";
 	myQuery += "FOREIGN KEY(dealerName) REFERENCES ";
 	myQuery += dealerTable;
 	myQuery += " (dealerName) ";
@@ -106,7 +108,7 @@ int main() {
 	// If the query didn't work
 	if (status != 0) {
 		//Explain why
-		cout << mysql_error(&mysql) << endl;
+		cout << "Invalid command / dealer not exists / manufacturer not exists." << endl;
 	}
 
 	//------CREATE MANUFACTURER TABLE-------------------------
@@ -245,7 +247,7 @@ int main() {
 		//case 's':
 		case 'q':
 			flag = true;
-			cout << "[Goodbye.]";
+			cout << "Exiting --------------------------------------------------";
 			break;
 			// if there is an error
 		default:
@@ -361,17 +363,17 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 		break;
 	case 'd':
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
-			string temp = row[2];
-			string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
-			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << num << endl;
+			//string temp = row[2];
+			//string num = "(" + temp.substr(0, 3) + ")" + temp.substr(3, 3) + "-" + temp.substr(6, 4);
+			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << setw(15) << row[2] << endl;
 		}
 		break;
 
-	case 'm':
+	/*case 'm': //LIST ALL MANUFACTURERS - FOR DEVELOPMENT PURPOSES
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
 			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << endl;
 		}
-		break;
+		break;*/
 	}
 
 	mysql_free_result(result);
@@ -466,9 +468,24 @@ int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
 	switch (cmd2) {
 	case'c':
 		myQuery = "DELETE FROM car_t";
-
+		myQuery += " WHERE carVIN = \"";
+		myQuery += what;
+		myQuery += "\";";
+		break;
 	case 'd':
-
+		myQuery = "DELETE car_t, dealer_t FROM car_t INNER JOIN dealer_t ";
+		myQuery += "ON car_t.dealerName = dealer_t.dealerName ";
+		myQuery += "WHERE car_t.dealerName = \"";
+		myQuery += what;
+		myQuery += "\";";
+		break;
+	case 'a': //DELETE ALL ROWS - FOR DEVELOPMENT PURPOSE
+		myQuery = "DELETE FROM dealer_t";
+		cout << myQuery;
+		break;
+	default:
+		cout << "Wrong command" << endl;
+		break;
 	}
 	status = mysql_query(conn, myQuery.c_str());
 
@@ -477,5 +494,5 @@ int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
 		cout << mysql_error(&mysql) << endl;
 	}
 
-	result = mysql_store_result(conn);
+	return status;
 }
