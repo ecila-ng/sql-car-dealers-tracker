@@ -19,7 +19,7 @@ int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL*, MYSQL);
 int list(char cmd2, MYSQL*, MYSQL);
 int find(char cmd2, MYSQL*, MYSQL);
 int deleteWhat(char cmd2, MYSQL*, MYSQL);
-
+int summarize(MYSQL*, MYSQL);
 
 
 string carTable = "car_t";
@@ -44,6 +44,7 @@ string myget_passwd() {
 	return passwd;
 }
 
+//This function is the main function 
 int main() {
 	//-------------- START SQL CONNECTION-------------------
 	// mysql connection and query variables
@@ -101,14 +102,13 @@ int main() {
 	myQuery += "CONSTRAINT FK_dealerName ";
 	myQuery += "FOREIGN KEY(dealerName) REFERENCES ";
 	myQuery += dealerTable;
-	myQuery += " (dealerName) ";
-	myQuery += ");";
+	myQuery += " (dealerName) ON DELETE CASCADE ON UPDATE CASCADE); ";
 	status = mysql_query(conn, myQuery.c_str());
 
 	// If the query didn't work
 	if (status != 0) {
 		//Explain why
-		cout << "Invalid command / dealer not exists / manufacturer not exists." << endl;
+		cout << mysql_error(&mysql) << endl;
 	}
 
 	//------CREATE MANUFACTURER TABLE-------------------------
@@ -180,7 +180,7 @@ int main() {
 				// If the query didn't work
 				if (status != 0) {
 					//Explain why
-					cout << mysql_error(&mysql) << endl;
+					cout << "Error: dealer name / manufacturer name not exists. " << endl;
 				}
 				break;
 
@@ -198,7 +198,7 @@ int main() {
 				break;
 
 				//add a dealer
-			case 'd':				
+			case 'd':
 				cin >> dealerName;
 				cin.get();
 				cin >> zipCode;
@@ -244,7 +244,15 @@ int main() {
 			}
 			break;
 
-		//case 's':
+		case 's':
+			status = summarize(conn, mysql);
+
+			if (status != 0) {
+				//Explain why
+				cout << mysql_error(&mysql) << endl;
+			}
+			break;
+
 		case 'q':
 			flag = true;
 			cout << "Exiting --------------------------------------------------";
@@ -254,15 +262,12 @@ int main() {
 			cout << "Wrong command";
 			cout << endl;
 			break;
-
 		}
-
-
-
 	}
 	return 0;
 }
 
+//This function adds a car into the system
 int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL* conn, MYSQL mysql) {
 	int status;
 
@@ -279,11 +284,12 @@ int addCar(string carVIN, int carMiles, string dealerName, int carPrice, MYSQL* 
 	string price = to_string(carPrice);
 	myQuery += price;
 	myQuery += "');";
-
 	status = mysql_query(conn, myQuery.c_str());
+
 	return status;
 }
 
+//This function adds a manufacturer into the system
 int addMan(string manCode, string manName, MYSQL* conn, MYSQL mysql) {
 	int status;
 
@@ -299,6 +305,7 @@ int addMan(string manCode, string manName, MYSQL* conn, MYSQL mysql) {
 	return status;
 }
 
+//This function adds a dealer into the system
 int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL* conn, MYSQL mysql) {
 	int status;
 	string myQuery = "insert into ";
@@ -306,16 +313,16 @@ int addDealer(string dealerName, int zipCode, string dealerNum, MYSQL* conn, MYS
 	myQuery += " VALUES('";
 	myQuery += dealerName;
 	myQuery += "', '";
-	string zip = to_string(zipCode); 
+	string zip = to_string(zipCode);
 	myQuery += zip;
 	myQuery += "', '";
 	myQuery += dealerNum;
 	myQuery += "');";
-	
+
 	status = mysql_query(conn, myQuery.c_str());
 	return status;
 }
-
+//This function lists all of the car or all of the dealers.
 int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 	int status;
 
@@ -337,11 +344,11 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 		myQuery += " order by zipCode, dealerName;";
 		break;
 	case 'm':
-		myQuery = "select * from " + manTable + ";" ;
+		myQuery = "select * from " + manTable + ";";
 		break;
 
 	default:
-		cout << "Table not exists" << endl;
+		cout << "Wrong command" << endl;
 		break;
 	}
 
@@ -369,17 +376,19 @@ int list(char cmd2, MYSQL* conn, MYSQL mysql) {
 		}
 		break;
 
-	/*case 'm': //LIST ALL MANUFACTURERS - FOR DEVELOPMENT PURPOSES
+	case 'm': //LIST ALL MANUFACTURERS - FOR DEVELOPMENT PURPOSES
 		for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
 			cout << setw(20) << left << row[0] << setw(15) << left << row[1] << endl;
 		}
-		break;*/
+		break;
 	}
 
 	mysql_free_result(result);
 	return status;
 }
 
+//This function finds either all cars from a specific manufacturer or a specific zipcode.
+//All cars listed include dealer name, phone number and all the info about the car. 
 int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 	int status;
 	string what;
@@ -410,7 +419,7 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 		myQuery += "ORDER BY man_t.manName ASC, car_t.carPrice DESC, dealer_t.dealerName;";
 		break;
 	default:
-		cout << "Table not exists" << endl;
+		cout << "Wrong command" << endl;
 		break;
 	}
 
@@ -454,7 +463,7 @@ int find(char cmd2, MYSQL* conn, MYSQL mysql) {
 	mysql_free_result(result);
 	return status;
 }
-
+//This function remove either a car (from a VIN) or a dealer with all the cars they're selling------------------
 int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
 	int status;
 	string what;
@@ -481,7 +490,6 @@ int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
 		break;
 	case 'a': //DELETE ALL ROWS - FOR DEVELOPMENT PURPOSE
 		myQuery = "DELETE FROM dealer_t";
-		cout << myQuery;
 		break;
 	default:
 		cout << "Wrong command" << endl;
@@ -494,5 +502,38 @@ int deleteWhat(char cmd2, MYSQL* conn, MYSQL mysql) {
 		cout << mysql_error(&mysql) << endl;
 	}
 
+	return status;
+}
+
+//This function simply print out one line for each manufacturer and -----------------------------
+//includes the average price of the cars made by that manufacturer.
+
+int summarize(MYSQL* conn, MYSQL mysql) {
+	int status;
+	string myQuery;
+
+	MYSQL_RES* result;
+	MYSQL_ROW row;
+
+	myQuery = "SELECT man_t.manName, AVG(car_t.carPrice) ";
+	myQuery += "FROM man_t, car_t ";
+	myQuery += "WHERE LEFT(carVIN, 3) = man_t.manCode ";
+	myQuery += "GROUP BY man_t.manName;";
+
+	status = mysql_query(conn, myQuery.c_str());
+
+	if (status != 0) {
+		//Explain why
+		cout << mysql_error(&mysql) << endl;
+	}
+
+	result = mysql_store_result(conn);
+
+
+	for (row = mysql_fetch_row(result); row != NULL; row = mysql_fetch_row(result)) {
+		cout << setw(20) << left << row[0] << setw(15) << left << row[1] << endl;;
+	}
+
+	mysql_free_result(result);
 	return status;
 }
